@@ -1,0 +1,6 @@
+{
+  "name": "DU-SUP",
+  "description": "Сап-сплавы и прокат в Дюртюлях на реке Агидель. Бронирование туров, аренда сапбордов и сапмаранов, йога на воде.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
