@@ -13,7 +13,7 @@ export const TOURS: Tour[] = [
     duration: '4-5 часов',
     price: 2000,
     description: 'Путешествие сквозь тихий лес с остановкой на необитаемом острове Туринка. Идеально для любителей дикой природы.',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7VA6-FrOSamqO-VQTOto_fXn5NDfQ4OvxbExHF55jC0RGEanEHc3njhTN_L0SFVrwGDTrbT3hU7hN3_2jsNbD-fUvn_PTbFf_wmq8-y4a4FpVIDaNULWcMxLQuSi8hnw1IzDzJrgn9AQSZHzTu-1XZME0GctfLsjdqNQmfkSjS8moYvd-JLH4fvqt72TLkpleEXAwrApV84ogWSIPVN4KRpdADhcxr7M1rCET7h-YQyT52REET4ZI3T8T2ZyPrU4zPouuDarOIbCh',
+    imageUrl: '/gusinka.png',
     features: [
       'Полный комплект оборудования (премиум SUP-борд, весло, лиш)',
       'Трансфер до точки старта',
@@ -28,7 +28,7 @@ export const TOURS: Tour[] = [
     duration: '4-5 часов',
     price: 2000,
     description: 'Высокие живописные берега Агидели, проход под величественным мостом и отдых на легендарном пляже «Золотые пески».',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBhcNc45527XL9iQjAp39Iuh_iDe1MVnVuqkFTIrO7_f7BA9eUTorxUIa36yDMGxUYJuE_NAuQ0DL9YOzSVvRL8YvX49QXHwIEO4S4NTZVtNwT4fY3iZKcnaq-tngtG3hB-fC1LQ05ksFFZ5C_xK6I5BWjMQVfLYFIUkqoCtg0EIh8_qEzGJN4B5gU0F0fY1WxNf0jQfI5hbx-CyNjXlfuktAt3WR5NpcrnfqFjrcWYiFIR-xUbJPk_-bxB7OlQF6y7XxKUKO0nLZc9',
+    imageUrl: '/peski.png',
     features: [
       'Сытный фирменный перекус и горячий чай включены',
       'Страховка каждого участника',

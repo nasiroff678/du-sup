@@ -66,7 +66,7 @@ const ROUTES: Record<string, RouteData> = {
     distance: '20 км',
     duration: '4-5 часов',
     difficulty: 'Для всех',
-    difficultyColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    difficultyColor: 'bg-primary/10 text-primary border-primary/20',
     description: 'Увлекательное и медитативное путешествие по верхнему течению Агидели. Проходит через густые прибрежные леса с остановкой на знаменитом диком острове «Туринка», где гнездятся дикие птицы.',
     fullPath: 'M 50,120 C 120,90 180,100 230,150 C 290,170 340,150 400,120 C 460,130 520,160 590,200 C 640,230 670,250 670,270',
     animationPoints: [
@@ -386,7 +386,7 @@ export default function InteractiveRouteMap({ onBook }: { onBook: (type: 'tour' 
   const renderWaypointIcon = (type: string, size = 16) => {
     switch (type) {
       case 'start':
-        return <Play size={size} className="text-emerald-500 fill-emerald-500" />;
+        return <Play size={size} className="text-primary fill-primary" />;
       case 'camp':
         return <Tent size={size} className="text-amber-500" />;
       case 'scenery':

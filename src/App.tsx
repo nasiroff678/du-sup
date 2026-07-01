@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from 'motion/react';
 import {
   Waves,
   Calendar,
@@ -36,6 +36,7 @@ import GalleryViewer from './components/GalleryViewer';
 import FAQSection from './components/FAQSection';
 import InteractiveRouteMap from './components/InteractiveRouteMap';
 import WeatherWidget from './components/WeatherWidget';
+import WaterParticles from './components/WaterParticles';
 
 // Initial dummy bookings to populate admin panel
 const INITIAL_BOOKINGS: Booking[] = [
@@ -83,6 +84,42 @@ const INITIAL_BOOKINGS: Booking[] = [
   }
 ];
 
+// Animated Counter component
+function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && !started) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [started]);
+
+  useEffect(() => {
+    if (!started) return;
+    const duration = 1400;
+    const steps = 40;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [started, target]);
+
+  return <p ref={ref} className="text-2xl font-extrabold text-primary">{count}{suffix}</p>;
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'admin'>('landing');
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -96,11 +133,57 @@ export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isHoveredBackToTop, setIsHoveredBackToTop] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const footerVideoRef = useRef<HTMLVideoElement>(null);
+  const [footerVideoEnded, setFooterVideoEnded] = useState(false);
+  const [showEnding, setShowEnding] = useState(false);
+
+  // After video ends, show logo for 5 seconds then revert to footer columns
+  useEffect(() => {
+    if (footerVideoEnded) {
+      setShowEnding(true);
+      const timer = setTimeout(() => setShowEnding(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [footerVideoEnded]);
 
   // Parallax effects for Hero Background using framer-motion (motion/react)
   const { scrollY } = useScroll();
   const yBg = useTransform(scrollY, [0, 800], [0, 160]);
   const opacityBg = useTransform(scrollY, [0, 800], [1, 0.35]);
+
+  // Cursor parallax for hero bg
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 60, damping: 25 });
+  const springY = useSpring(mouseY, { stiffness: 60, damping: 25 });
+
+  const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    mouseX.set((e.clientX - cx) / rect.width  * -18);
+    mouseY.set((e.clientY - cy) / rect.height * -12);
+  }, [mouseX, mouseY]);
+
+  const handleHeroMouseLeave = useCallback(() => {
+    mouseX.set(0);
+    mouseY.set(0);
+  }, [mouseX, mouseY]);
+
+  // Slow down hero video playback
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.7;
+    }
+  }, []);
+
+  // Slow down footer video playback
+  useEffect(() => {
+    if (footerVideoRef.current) {
+      footerVideoRef.current.playbackRate = 0.6;
+    }
+  }, []);
 
   // Load and save bookings from localStorage
   useEffect(() => {
@@ -175,7 +258,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-white min-h-screen text-river-deep font-sans selection:bg-secondary selection:text-river-deep">
+    <div className="water-flow-bg min-h-screen text-river-deep font-sans selection:bg-secondary selection:text-river-deep">
       {/* Sticky Navbar */}
       <nav
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
@@ -192,8 +275,8 @@ export default function App() {
           >
             <div className="w-10 h-10 group-hover:rotate-6 transition-all duration-300">
               <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Rounded square container for premium branding feel in Primary Blue (#007BFF) */}
-                <rect width="100" height="100" rx="24" fill="#007BFF" />
+                {/* Rounded square container for premium branding feel in Deep Sea Turquoise (#088395) */}
+                <rect width="100" height="100" rx="24" fill="#088395" />
                 
                 {/* Stylized river waves in white */}
                 <path d="M20 62 C 35 69, 45 55, 60 62 C 75 69, 80 62, 80 62" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -233,6 +316,9 @@ export default function App() {
             </a>
             <a href="#yoga" className="text-sm font-semibold text-river-deep hover:text-primary transition-colors">
               Йога
+            </a>
+            <a href="#gift-certificate" className="text-sm font-semibold text-river-deep hover:text-primary transition-colors">
+              Сертификаты
             </a>
             <a href="#gallery" className="text-sm font-semibold text-river-deep hover:text-primary transition-colors">
               Галерея
@@ -276,32 +362,52 @@ export default function App() {
       ) : (
         <>
           {/* HERO SECTION */}
-          <header className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-            {/* Cinematic Panoramic Background */}
+          <header
+            className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
+            onMouseMove={handleHeroMouseMove}
+            onMouseLeave={handleHeroMouseLeave}
+          >
+            {/* Cinematic Video Background with cursor parallax */}
             <div className="absolute inset-0 z-0 overflow-hidden">
               <motion.div
-                className="absolute inset-x-0 -top-[10%] h-[120%] bg-cover bg-center"
+                className="absolute inset-x-0 -top-[10%] h-[120%]"
                 style={{
                   y: yBg,
+                  x: springX,
+                  translateY: springY,
                   opacity: opacityBg,
-                  backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6EKS3cckzFsuO408z0-BO-YUETmWBnBJisKLxGmjMWMKtVLlSMQE90pp2JMnO1Y8Jd-UrpoxpVZVuf2bkvUIdJU4gKibY-I7O4BAMXnK2rrVw5slQiqQKQWMFu5I9FUPeCLDlwv20tkUV29jqreBezgbrFQsn3lKvdRTiIR7KVcFjVtQYv3zfZB79nONELHOgPDCTYAFCErr0qDG_c2zidKdkZk0OX2PdIOH_nxtC_YZPHLeK4glXGl2dkDIWEG_Xex33jRNtMJm0')`
                 }}
-              />
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+              >
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  ref={videoRef}
+                  src="/hero-video.mp4"
+                />
+              </motion.div>
+              {/* Misty calm overlay */}
+              <div className="absolute inset-0 hero-mist-overlay" />
+              <div className="absolute inset-0 hero-bg-glow" />
             </div>
 
             {/* Hero content */}
             <div className="relative z-10 text-center px-4 max-w-4xl space-y-8">
+              {/* Badge with shimmer */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="inline-flex items-center gap-1.5 bg-white/10 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest border border-white/20"
+                className="inline-flex items-center gap-1.5 badge-shimmer text-white px-5 py-2 rounded-full text-xs font-semibold uppercase tracking-widest border border-white/20"
               >
-                <Waves size={14} className="text-secondary animate-pulse" />
+                <Waves size={14} className="text-white/70" />
                 <span>Сап-сплавы и прокат в Дюртюлях</span>
               </motion.div>
 
+              {/* Main headline */}
               <motion.h2
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -309,52 +415,84 @@ export default function App() {
                 className="font-headline font-extrabold text-4xl sm:text-6xl text-white hero-text-shadow tracking-tight leading-[1.1]"
               >
                 Почувствуй реку.<br />
-                <span className="text-secondary">Стань частью течения.</span>
+                <span className="hero-gradient-text">Стань частью течения.</span>
               </motion.h2>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="text-lg md:text-xl text-mist-white/95 max-w-2xl mx-auto leading-relaxed font-medium"
+                className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed font-medium"
               >
                 Республика Башкортостан, река Агидель. Всё необходимое для незабываемого и безопасного отдыха на воде — в одном месте.
               </motion.p>
 
+              {/* Redesigned CTA buttons */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
               >
+                {/* Primary CTA — accent yellow */}
                 <a
                   href="#tours"
-                  className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:scale-105 text-center cursor-pointer"
+                  className="group w-full sm:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-yellow-400 text-river-deep px-8 py-4 rounded-2xl font-extrabold uppercase tracking-wider text-sm transition-all shadow-[0_4px_24px_rgba(250,204,21,0.45)] hover:shadow-[0_6px_32px_rgba(250,204,21,0.65)] hover:scale-105 cursor-pointer"
                 >
+                  <Waves size={16} className="group-hover:rotate-12 transition-transform" />
                   ВЫБРАТЬ СПЛАВ
                 </a>
+                {/* Secondary CTA — glassmorphism */}
                 <a
                   href="#rental"
-                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:scale-105 text-center cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 btn-glass text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-wider text-sm hover:scale-105 cursor-pointer"
                 >
-                  ЗАПИСАТЬСЯ НА ПРОКАТ
+                  <Anchor size={16} />
+                  ПРОКАТ САПБОРДОВ
                 </a>
+                {/* Tertiary CTA — glassmorphism subtle */}
                 <a
                   href="#services"
-                  className="w-full sm:w-auto bg-secondary hover:bg-opacity-90 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:scale-105 text-center cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 btn-glass text-white/80 px-8 py-4 rounded-2xl font-bold uppercase tracking-wider text-sm hover:scale-105 hover:text-white cursor-pointer"
                 >
-                  ВЫБРАТЬ УСЛУГУ
+                  <Compass size={16} />
+                  ВСЕ УСЛУГИ
                 </a>
+              </motion.div>
+
+              {/* Live stats row */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.5 }}
+                className="flex flex-wrap justify-center gap-6 pt-2"
+              >
+                {[
+                  { label: 'туристов за сезон', value: '500+' },
+                  { label: 'маршрутов', value: '5' },
+                  { label: 'рейтинг', value: '4.9★' },
+                ].map((stat) => (
+                  <div key={stat.label} className="flex flex-col items-center">
+                    <span className="text-white font-extrabold text-xl leading-none">{stat.value}</span>
+                    <span className="text-white/50 text-[10px] uppercase tracking-widest mt-0.5">{stat.label}</span>
+                  </div>
+                ))}
               </motion.div>
             </div>
 
+            {/* Soft fade into calm white content */}
+            <div className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none h-32 hero-bottom-fade" />
+
             {/* Scroll Indicator */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center gap-1 opacity-80">
-              <span className="text-[10px] text-white/60 font-semibold tracking-widest uppercase">Листайте вниз</span>
-              <span className="material-symbols-outlined text-white text-3xl">keyboard_double_arrow_down</span>
+            <div className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-[3]">
+              <span className="text-[10px] text-white/50 font-semibold tracking-widest uppercase">Листайте вниз</span>
+              <span className="material-symbols-outlined text-white/60 text-3xl">keyboard_double_arrow_down</span>
             </div>
           </header>
 
+          <div className="midpage-background relative overflow-hidden">
+            <div className="river-flow-overlay pointer-events-none absolute inset-0" />
+            <WaterParticles />
           {/* ABOUT US SECTION */}
           <section className="py-24 px-4 md:px-16 max-w-7xl mx-auto overflow-hidden" id="about">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -379,16 +517,16 @@ export default function App() {
                   Наши сплавы — это не просто active спорт, это медитация в движении, возможность увидеть родные берега с совершенно нового ракурса и почувствовать настоящую свободу на водной глади.
                 </p>
                 <div className="grid grid-cols-3 gap-4 pt-4 text-center">
-                  <div className="bg-surface-container p-4 rounded-xl border border-outline-variant/30">
-                    <p className="text-2xl font-extrabold text-secondary">90%</p>
+                  <div className="bg-white p-4 rounded-xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-shadow">
+                    <AnimatedCounter target={90} suffix="%" />
                     <p className="text-[10px] text-on-surface-variant font-semibold uppercase mt-1">Новичков</p>
                   </div>
-                  <div className="bg-surface-container p-4 rounded-xl border border-outline-variant/30">
-                    <p className="text-2xl font-extrabold text-secondary">100%</p>
+                  <div className="bg-white p-4 rounded-xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-shadow">
+                    <AnimatedCounter target={100} suffix="%" />
                     <p className="text-[10px] text-on-surface-variant font-semibold uppercase mt-1">Безопасно</p>
                   </div>
-                  <div className="bg-surface-container p-4 rounded-xl border border-outline-variant/30">
-                    <p className="text-2xl font-extrabold text-secondary">4.9★</p>
+                  <div className="bg-white p-4 rounded-xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-shadow">
+                    <AnimatedCounter target={49} suffix="/5★" />
                     <p className="text-[10px] text-on-surface-variant font-semibold uppercase mt-1">Отзывы</p>
                   </div>
                 </div>
@@ -463,14 +601,14 @@ export default function App() {
                   whileHover={{ y: -8, scale: 1.03 }}
                   className="bg-white p-8 rounded-2xl custom-light-shadow hover:shadow-[0_10px_30px_rgba(0,123,255,0.12)] hover:border-primary/30 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center group"
                 >
-                  <div className="w-16 h-16 bg-sky-50 text-sky-500 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#007BFF] group-hover:text-white transition-all duration-300">
+                  <div className="w-16 h-16 bg-sky-50 text-sky-500 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
                     <span className="material-symbols-outlined text-3xl">kayaking</span>
                   </div>
                   <h3 className="font-headline font-bold text-lg text-river-deep mb-3">Сплавы по Агидели</h3>
                   <p className="text-sm text-on-surface-variant mb-6 flex-grow leading-relaxed">
                     Групповые туры по живописным маршрутам с трансфером и сопровождением.
                   </p>
-                  <a href="#tours" className="border-2 border-[#007BFF] text-[#007BFF] font-bold text-xs uppercase tracking-wider py-2 px-8 rounded-full hover:bg-[#007BFF] hover:text-white transition-all cursor-pointer">
+                  <a href="#tours" className="border-2 border-primary text-primary font-bold text-xs uppercase tracking-wider py-2 px-8 rounded-full hover:bg-primary hover:text-white transition-all cursor-pointer">
                     Выбрать
                   </a>
                 </motion.div>
@@ -484,14 +622,14 @@ export default function App() {
                   whileHover={{ y: -8, scale: 1.03 }}
                   className="bg-white p-8 rounded-2xl custom-light-shadow hover:shadow-[0_10px_30px_rgba(0,123,255,0.12)] hover:border-primary/30 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center group"
                 >
-                  <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                  <div className="w-16 h-16 bg-sky-50 text-primary rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
                     <span className="material-symbols-outlined text-3xl">surfing</span>
                   </div>
                   <h3 className="font-headline font-bold text-lg text-river-deep mb-3">Прокат сапбордов</h3>
                   <p className="text-sm text-on-surface-variant mb-6 flex-grow leading-relaxed">
                     Почасовая и полупочасовая аренда качественных досок на пляже «Котлован».
                   </p>
-                  <a href="#rental" className="border-2 border-emerald-500 text-emerald-500 font-bold text-xs uppercase tracking-wider py-2 px-8 rounded-full hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
+                  <a href="#rental" className="border-2 border-primary text-primary font-bold text-xs uppercase tracking-wider py-2 px-8 rounded-full hover:bg-primary hover:text-white transition-all cursor-pointer">
                     Выбрать
                   </a>
                 </motion.div>
@@ -505,7 +643,7 @@ export default function App() {
                   whileHover={{ y: -8, scale: 1.03 }}
                   className="bg-white p-8 rounded-2xl custom-light-shadow hover:shadow-[0_10px_30px_rgba(0,123,255,0.12)] hover:border-primary/30 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center group"
                 >
-                  <div className="w-16 h-16 bg-blue-50 text-primary rounded-full flex items-center justify-center mb-6 group-hover:bg-[#007BFF] group-hover:text-white transition-all duration-300">
+                  <div className="w-16 h-16 bg-blue-50 text-primary rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
                     <span className="material-symbols-outlined text-3xl">sailing</span>
                   </div>
                   <h3 className="font-headline font-bold text-lg text-river-deep mb-3">Семейные Сапмараны</h3>
@@ -723,7 +861,7 @@ export default function App() {
                   transition={{ duration: 0.7, ease: "easeOut" }}
                   className="space-y-6"
                 >
-                  <div className="inline-block px-3 py-1 bg-secondary text-white text-[10px] font-bold uppercase tracking-wider rounded-md">
+                  <div className="inline-block px-3 py-1 bg-accent text-river-deep text-[10px] font-bold uppercase tracking-wider rounded-md">
                     ТОЛЬКО У НАС В DU-SUP
                   </div>
                   <h2 className="font-headline font-extrabold text-3xl sm:text-4xl text-white leading-tight">
@@ -754,7 +892,7 @@ export default function App() {
                   </ul>
                   <button
                     onClick={() => openBookingModal('rental', 'supmaran_rental')}
-                    className="bg-secondary hover:bg-secondary-container text-white px-8 py-4 rounded-xl font-bold uppercase text-xs tracking-wider transition-all shadow-lg cursor-pointer"
+                    className="bg-accent hover:bg-yellow-400 text-river-deep px-8 py-4 rounded-xl font-bold uppercase text-xs tracking-wider transition-all shadow-lg cursor-pointer"
                   >
                     ХОЧУ ПОПРОБОВАТЬ!
                   </button>
@@ -773,7 +911,7 @@ export default function App() {
                       backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuAj660e83wBMWkT60pVrbr7Rvpel67luDmMPVzhoZ7ikgldk6hzpkyLKLXWWA0TTo7KHDAPnBmHe_S6di7AhwGcYa52rJeT0xDPMeKT8dy7v-39N_ZNqZUA-IGW484qyqBTrKVStKsSAdUaQM8Q-1FdPLL_iN7Pn65hG3LbEh3Jf8Xfdl2yBkoGO0FtbJsfaPVy3FK0m5mRp7SY1WSzWYc_X8uXEbJUwnJpSPjzZXCtTG1aPqsDeuwUEr56IVMbpw3OmpDRi0bdglpT')`
                     }}
                   />
-                  <div className="absolute -bottom-6 -left-6 bg-secondary text-white p-5 rounded-2xl shadow-xl hidden md:block border border-white/10">
+                  <div className="absolute -bottom-6 -left-6 bg-accent text-river-deep p-5 rounded-2xl shadow-xl hidden md:block border border-white/10">
                     <p className="font-headline font-bold text-lg leading-none">NEW 2026</p>
                     <p className="text-[10px] font-semibold uppercase tracking-wider mt-1 opacity-80">Хит сезона</p>
                   </div>
@@ -797,7 +935,7 @@ export default function App() {
                   transition={{ duration: 0.7, ease: "easeOut" }}
                   className="aspect-square bg-cover bg-center rounded-full border-8 border-white shadow-xl max-w-md mx-auto w-full"
                   style={{
-                    backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuBk0hAANOURosuydsls1Qd00JuRAdBGxXJ5iyFCcFhk5uMts4iCqMmeR-ZgZQ5FWqEbgm3KDFqJldSXIRvW5yvZBV_GqTHi9duiNsE5TQ-6zA36NAA5ZSc0PHIP_ahRzVFNGW50-TKMXLB7p5x8-BjhshFlGb5muD1QTF421jiX5igjfK4jZRjjts1Fx1dmkQf5SL2Q8w679Sh17X7s1tIrOAW8-8fa9yoyAjiQfamVPgSq3mBPb5q3-l9fVSDlOW-q1L02K2RFA-Nj')`
+                    backgroundImage: `url('/yoga.png')`
                   }}
                 />
 
@@ -1070,11 +1208,116 @@ export default function App() {
             </motion.div>
           </section>
 
+          {/* GIFT CERTIFICATE SECTION */}
+          <section className="py-24 px-4 md:px-16 max-w-7xl mx-auto overflow-hidden" id="gift-certificate">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Left: Image / Visual */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="relative"
+              >
+                <div className="bg-gradient-to-br from-secondary/10 via-accent/10 to-primary/10 rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-40 h-40 opacity-10 pointer-events-none">
+                    <span className="material-symbols-outlined text-[200px]">redeem</span>
+                  </div>
+                  <div className="space-y-4 relative z-10">
+                    <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg">
+                      <span className="material-symbols-outlined text-3xl text-river-deep">card_giftcard</span>
+                    </div>
+                    <h3 className="font-headline font-extrabold text-2xl text-river-deep">
+                      Подарочный сертификат DU-SUP
+                    </h3>
+                    <p className="text-on-surface-variant text-sm leading-relaxed">
+                      Идеальный подарок для тех, кто любит приключения. Подарите незабываемые эмоции на воде!
+                    </p>
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className="flex items-center gap-1.5 text-xs text-secondary font-semibold">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Действует 3 месяца
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-secondary font-semibold">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Любая услуга
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Right: Pricing & Options */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="space-y-8"
+              >
+                <div className="space-y-2">
+                  <div className="inline-block px-4 py-1 bg-accent/20 text-river-deep rounded-full font-semibold text-xs uppercase tracking-widest font-label-md">
+                    ПОДАРОК, КОТОРЫЙ ЗАПОМИНАЕТСЯ
+                  </div>
+                  <h2 className="font-headline font-extrabold text-3xl md:text-4xl text-river-deep">
+                    Подарочный сертификат
+                  </h2>
+                  <div className="h-1 w-20 bg-accent rounded" />
+                </div>
+
+                <p className="text-base text-on-surface-variant leading-relaxed">
+                  Подарите близким возможность почувствовать реку. Сертификат действителен на любую из наших услуг — сплавы, прокат, йогу или сапмаран.
+                </p>
+
+                {/* Amount options */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-river-deep uppercase tracking-wider">На сумму:</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button className="bg-white p-4 rounded-xl border-2 border-outline-variant/30 hover:border-accent hover:shadow-lg transition-all text-center group cursor-pointer">
+                      <p className="text-2xl font-extrabold text-river-deep group-hover:text-accent transition-colors">1000 ₽</p>
+                      <p className="text-[10px] text-on-surface-variant font-semibold uppercase mt-1">Прокат</p>
+                    </button>
+                    <button className="bg-white p-4 rounded-xl border-2 border-accent shadow-md text-center group cursor-pointer">
+                      <p className="text-2xl font-extrabold text-accent">2000 ₽</p>
+                      <p className="text-[10px] text-river-deep font-bold uppercase mt-1">Популярный</p>
+                    </button>
+                    <button className="bg-white p-4 rounded-xl border-2 border-outline-variant/30 hover:border-accent hover:shadow-lg transition-all text-center group cursor-pointer">
+                      <p className="text-2xl font-extrabold text-river-deep group-hover:text-accent transition-colors">3000 ₽</p>
+                      <p className="text-[10px] text-on-surface-variant font-semibold uppercase mt-1">Сплав</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                  <button
+                    onClick={() => {
+                      setPreselectedService(null);
+                      setIsBookingOpen(true);
+                    }}
+                    className="flex-1 bg-accent hover:bg-yellow-400 text-river-deep py-4 rounded-xl font-bold uppercase text-xs tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-lg">shopping_cart</span>
+                    КУПИТЬ СЕРТИФИКАТ
+                  </button>
+                  <a
+                    href="https://wa.me/79000000000"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 border-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white py-3.5 rounded-xl font-bold uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <MessageSquare size={16} />
+                    УТОЧНИТЬ В WHATSAPP
+                  </a>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+
           {/* FAQS & TESTIMONIALS */}
           <FAQSection />
 
           {/* SAFETY RULES SECTION */}
-          <section className="py-24 bg-gradient-to-b from-white to-sand-bleached/30 px-4 md:px-16 overflow-hidden animate-fade-in" id="safety">
+          <section className="py-24 bg-gradient-to-b from-white to-[#F5F7F5] px-4 md:px-16 overflow-hidden animate-fade-in" id="safety">
             <div className="max-w-7xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -1083,8 +1326,8 @@ export default function App() {
                 transition={{ duration: 0.6 }}
                 className="text-center max-w-3xl mx-auto mb-16 space-y-4"
               >
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-700 rounded-full font-semibold text-xs uppercase tracking-widest font-label-md">
-                  <ShieldCheck size={14} className="text-emerald-600 animate-pulse" />
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-full font-semibold text-xs uppercase tracking-widest font-label-md">
+                  <ShieldCheck size={14} className="text-primary animate-pulse" />
                   Безопасность на воде
                 </div>
                 <h2 className="font-headline font-extrabold text-3xl md:text-4xl text-river-deep">
@@ -1107,7 +1350,7 @@ export default function App() {
                   className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl border border-outline-variant/15 flex flex-col justify-between transition-all duration-300 group"
                 >
                   <div className="space-y-4">
-                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-xl flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300">
                       <LifeBuoy size={24} />
                     </div>
                     <h3 className="font-headline font-bold text-lg text-river-deep">Спасательный жилет</h3>
@@ -1115,8 +1358,8 @@ export default function App() {
                       Выдается абсолютно бесплатно каждому гостю. Жилет должен быть застегнут и отрегулирован по фигуре на протяжении всего времени нахождения на воде.
                     </p>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-outline-variant/10 flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <div className="mt-6 pt-4 border-t border-outline-variant/10 flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Обязательно для всех
                   </div>
                 </motion.div>
@@ -1215,78 +1458,155 @@ export default function App() {
                   href="https://wa.me/79000000000"
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-secondary hover:bg-secondary-container text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest shrink-0 transition-transform hover:scale-[1.02] text-center"
+                  className="bg-accent hover:bg-yellow-400 text-river-deep px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest shrink-0 transition-transform hover:scale-[1.02] text-center"
                 >
                   ЗАДАТЬ ВОПРОС
                 </a>
               </motion.div>
             </div>
           </section>
+          </div>
 
           {/* FOOTER */}
-          <footer className="bg-river-deep dark:bg-abyssal-grey text-mist-white py-16">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-4 md:px-16 max-w-7xl mx-auto">
-              {/* Col 1 */}
-              <div className="space-y-4">
-                <div className="font-headline font-extrabold text-2xl text-secondary">DU-SUP</div>
-                <p className="text-sm text-mist-white/70 leading-relaxed">
-                  Ваш надежный проводник в мир водных прогулок и захватывающих сплавов по Белой реке в Дюртюлях. Дарим эмоции и гарантируем безопасность.
-                </p>
-                <div className="flex gap-4 pt-2">
-                  <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors text-white">
-                    <span className="material-symbols-outlined text-sm">public</span>
-                  </a>
-                  <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors text-white">
-                    <span className="material-symbols-outlined text-sm">chat</span>
-                  </a>
-                  <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors text-white">
-                    <span className="material-symbols-outlined text-sm">alternate_email</span>
-                  </a>
-                </div>
-              </div>
+          <footer className="relative text-mist-white py-16 overflow-hidden">
+            {/* Background video */}
+            <video
+              autoPlay
+              muted
+              playsInline
+              ref={footerVideoRef}
+              className="absolute inset-0 w-full h-full object-cover"
+              src="/footer-video.mp4"
+              onEnded={() => setFooterVideoEnded(true)}
+            />
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/55" />
+            {/* Content — either footer columns or ending overlay */}
+            <div className="relative z-10">
+              <AnimatePresence mode="wait">
+                {showEnding ? (
+                  <motion.div
+                    key="ending"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1.2 }}
+                    className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.7 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.8, delay: 0.2 }}
+                      className="w-24 h-24 mb-8"
+                    >
+                      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100" height="100" rx="24" fill="#088395" />
+                        <path d="M20 62 C 35 69, 45 55, 60 62 C 75 69, 80 62, 80 62" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M20 76 C 35 83, 45 69, 60 76 C 75 83, 80 76, 80 76" stroke="white" strokeWidth="4.5" opacity="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M42 22 C 42 16, 58 16, 58 22 L 52 58 C 52 61, 48 61, 48 58 Z" fill="#FACC15" />
+                        <line x1="30" y1="24" x2="70" y2="54" stroke="#FACC15" strokeWidth="4" strokeLinecap="round" />
+                        <path d="M68 52 L 74 61 C 76 63, 72 66, 69 64 L 64 56 Z" fill="#FACC15" stroke="#FACC15" strokeWidth="1" />
+                      </svg>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, delay: 0.5 }}
+                    >
+                      <h3 className="font-headline font-extrabold text-5xl md:text-6xl text-white tracking-tight mb-2">
+                        DU-SUP
+                      </h3>
+                      <p className="text-sm md:text-base uppercase tracking-[0.35em] text-white/50 font-semibold mb-8">
+                        Agidel River
+                      </p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 0.6, delay: 0.8 }}
+                      className="h-px w-24 bg-gradient-to-r from-transparent via-secondary to-transparent mb-8"
+                    />
+                    <motion.p
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, delay: 1.0 }}
+                      className="text-xl md:text-2xl text-white/80 font-medium italic max-w-lg leading-relaxed"
+                    >
+                      Почувствуй реку. Стань частью течения.
+                    </motion.p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="columns"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-4 md:px-16 max-w-7xl mx-auto">
+                      {/* Col 1 */}
+                      <div className="space-y-4">
+                        <div className="font-headline font-extrabold text-2xl text-secondary">DU-SUP</div>
+                        <p className="text-sm text-mist-white/70 leading-relaxed">
+                          Ваш надежный проводник в мир водных прогулок и захватывающих сплавов по Белой реке в Дюртюлях. Дарим эмоции и гарантируем безопасность.
+                        </p>
+                        <div className="flex gap-4 pt-2">
+                          <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors text-white">
+                            <span className="material-symbols-outlined text-sm">public</span>
+                          </a>
+                          <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors text-white">
+                            <span className="material-symbols-outlined text-sm">chat</span>
+                          </a>
+                          <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors text-white">
+                            <span className="material-symbols-outlined text-sm">alternate_email</span>
+                          </a>
+                        </div>
+                      </div>
 
-              {/* Col 2 */}
-              <div className="space-y-4">
-                <h5 className="font-headline font-bold text-base text-secondary">Навигация</h5>
-                <ul className="space-y-2.5 text-sm text-mist-white/80">
-                  <li><a href="#services" className="hover:text-white transition-colors">Наши услуги</a></li>
-                  <li><a href="#tours" className="hover:text-white transition-colors">Сплавы по Агидели</a></li>
-                  <li><a href="#rental" className="hover:text-white transition-colors">Прокат оборудования</a></li>
-                  <li><a href="#yoga" className="hover:text-white transition-colors">Йога на воде</a></li>
-                </ul>
-              </div>
+                      {/* Col 2 */}
+                      <div className="space-y-4">
+                        <h5 className="font-headline font-bold text-base text-secondary">Навигация</h5>
+                        <ul className="space-y-2.5 text-sm text-mist-white/80">
+                          <li><a href="#services" className="hover:text-white transition-colors">Наши услуги</a></li>
+                          <li><a href="#tours" className="hover:text-white transition-colors">Сплавы по Агидели</a></li>
+                          <li><a href="#rental" className="hover:text-white transition-colors">Прокат оборудования</a></li>
+                          <li><a href="#yoga" className="hover:text-white transition-colors">Йога на воде</a></li>
+                        </ul>
+                      </div>
 
-              {/* Col 3 */}
-              <div className="space-y-4">
-                <h5 className="font-headline font-bold text-base text-secondary">Полезное</h5>
-                <ul className="space-y-2.5 text-sm text-mist-white/80">
-                  <li><a href="#about" className="hover:text-white transition-colors">О нас</a></li>
-                  <li><a href="#faq" className="hover:text-white transition-colors">Вопросы и ответы</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Политика конфиденциальности</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Правила безопасности на воде</a></li>
-                </ul>
-              </div>
+                      {/* Col 3 */}
+                      <div className="space-y-4">
+                        <h5 className="font-headline font-bold text-base text-secondary">Полезное</h5>
+                        <ul className="space-y-2.5 text-sm text-mist-white/80">
+                          <li><a href="#about" className="hover:text-white transition-colors">О нас</a></li>
+                          <li><a href="#faq" className="hover:text-white transition-colors">Вопросы и ответы</a></li>
+                          <li><a href="#" className="hover:text-white transition-colors">Политика конфиденциальности</a></li>
+                          <li><a href="#" className="hover:text-white transition-colors">Правила безопасности на воде</a></li>
+                        </ul>
+                      </div>
 
-              {/* Col 4 */}
-              <div className="space-y-4">
-                <h5 className="font-headline font-bold text-base text-secondary">Контакты</h5>
-                <p className="text-sm text-mist-white/80 leading-relaxed">
-                  Республика Башкортостан, г. Дюртюли, Городской пляж «Котлован»
-                </p>
-                <div className="pt-2 text-lg font-bold text-white">+7 (900) 000-00-00</div>
-                <a
-                  href="https://wa.me/79000000000"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full bg-secondary hover:bg-secondary-container text-white text-center py-3 rounded-lg font-bold text-xs uppercase tracking-wider block transition-transform hover:scale-[1.01] cursor-pointer"
-                >
-                  Связаться в WhatsApp
-                </a>
-              </div>
-            </div>
+                      {/* Col 4 */}
+                      <div className="space-y-4">
+                        <h5 className="font-headline font-bold text-base text-secondary">Контакты</h5>
+                        <p className="text-sm text-mist-white/80 leading-relaxed">
+                          Республика Башкортостан, г. Дюртюли, Городской пляж «Котлован»
+                        </p>
+                        <div className="pt-2 text-lg font-bold text-white">+7 (900) 000-00-00</div>
+                        <a
+                          href="https://wa.me/79000000000"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full bg-accent hover:bg-yellow-400 text-river-deep text-center py-3 rounded-lg font-bold text-xs uppercase tracking-wider block transition-transform hover:scale-[1.01] cursor-pointer"
+                        >
+                          Связаться в WhatsApp
+                        </a>
+                      </div>
+                    </div>
 
-            <div className="mt-16 pt-8 border-t border-white/10 text-center text-xs text-mist-white/40">
-              © 2026 DU-SUP Agidel River Adventures. В партнерстве с DilyaYoga. Все права защищены.
+                    <div className="mt-16 pt-8 border-t border-white/10 text-center text-xs text-mist-white/40">
+                      © 2026 DU-SUP Agidel River Adventures. В партнерстве с DilyaYoga. Все права защищены.
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </footer>
         </>

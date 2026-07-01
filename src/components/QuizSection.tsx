@@ -60,7 +60,7 @@ export default function QuizSection({ onApplyPromo, onSelectTour }: QuizSectionP
   };
 
   return (
-    <section id="quiz" className="py-16 md:py-24 bg-[#E0F2FE]/40 text-river-deep overflow-hidden relative">
+    <section id="quiz" className="py-16 md:py-24 bg-[#F5F7F5] text-river-deep overflow-hidden relative">
       <div className="absolute right-0 top-0 opacity-10 pointer-events-none text-primary">
         <HelpCircle size={400} />
       </div>
@@ -138,7 +138,7 @@ export default function QuizSection({ onApplyPromo, onSelectTour }: QuizSectionP
                     onClick={() => handleAnswer(QUIZ_QUESTIONS[currentStep].id, option.value)}
                     className="bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-[#007BFF]/50 text-[#1A1A1B] rounded-2xl p-6 text-center transition-all custom-light-shadow flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[160px] group"
                   >
-                    <div className="w-12 h-12 rounded-full bg-[#E0F2FE] text-[#007BFF] flex items-center justify-center group-hover:bg-[#007BFF] group-hover:text-white transition-colors duration-300">
+                    <div className="w-12 h-12 rounded-full bg-secondary-light text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                       <span className="material-symbols-outlined text-2xl">{option.icon}</span>
                     </div>
                     <span className="font-bold text-sm md:text-base leading-tight">
@@ -159,7 +159,7 @@ export default function QuizSection({ onApplyPromo, onSelectTour }: QuizSectionP
               transition={{ duration: 0.5 }}
               className="space-y-8"
             >
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
+              <div className="w-16 h-16 bg-sky-50 text-primary rounded-full flex items-center justify-center mx-auto border border-primary/20">
                 <Award size={36} />
               </div>
 

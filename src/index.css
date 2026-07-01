@@ -4,15 +4,28 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-headline: "Montserrat", sans-serif;
-  
-  --color-primary: #007BFF;
-  --color-secondary: #E0F2FE;
+
+  --color-primary: #088395; /* Deep Sea Turquoise / River shade */
+  --color-secondary: #4A6741;
+  --color-secondary-light: #FEF9C3;
+  --color-secondary-container: #EAB308;
   --color-accent: #FACC15;
   --color-river-deep: #1A1A1B;
   --color-sunset-vibe: #FACC15;
   --color-sand-bleached: #F8FAFC;
   --color-mist-white: #FFFFFF;
   --color-abyssal-grey: #1A1A1B;
+  --color-background: #FFFFFF;
+  --color-surface-container: #F5F7F5;
+  --color-surface-container-low: #FAFBFA;
+  --color-surface-container-high: #E8ECE8;
+  --color-on-surface-variant: #64748B;
+  --color-outline-variant: #CBD5E1;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
 }
 
 /* Custom styles */
@@ -28,13 +41,112 @@
   scrollbar-width: none;
 }
 
-/* Custom light shadow requested: 0 4px 20px rgba(0, 0, 0, 0.05) */
+/* Custom light shadow */
 .custom-light-shadow {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Service card hover glow color Primary */
-.card-hover-glow:hover {
-  box-shadow: 0 10px 30px rgba(0, 123, 255, 0.15);
+/* Smooth floating background utility */
+@utility water-flow-bg {
+  background: linear-gradient(-45deg, #f4f7f6, #e9f2f1, #f0f4f8, #ffffff);
+  background-size: 400% 400%;
+  animation: water-flow 20s ease infinite;
 }
 
+@keyframes water-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Calm mid-page background — misty white / sage */
+.midpage-background {
+  position: relative;
+  background-color: transparent;
+  overflow: hidden;
+}
+
+.river-flow-overlay {
+  pointer-events: none;
+  opacity: 0.35;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(245, 248, 245, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* Service card hover glow color Primary */
+.card-hover-glow:hover {
+  box-shadow: 0 10px 30px rgba(8, 131, 149, 0.15);
+}
+
+/* =============================================
+   HERO ANIMATIONS
+   ============================================= */
+
+/* Calm hero accent line — soft off-white */
+.hero-gradient-text {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+}
+
+/* Glassmorphism CTA button */
+.btn-glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+}
+
+/* Animated scroll indicator pulse */
+@keyframes scroll-pulse {
+  0%, 100% { opacity: 0.6; transform: translateY(0); }
+  50%       { opacity: 1;   transform: translateY(6px); }
+}
+.scroll-indicator {
+  animation: scroll-pulse 2.5s ease-in-out infinite;
+}
+
+/* Misty hero overlay — calm lake atmosphere */
+.hero-mist-overlay {
+  background:
+    linear-gradient(180deg, rgba(30, 40, 35, 0.25) 0%, rgba(20, 30, 28, 0.45) 50%, rgba(15, 22, 20, 0.55) 100%),
+    radial-gradient(ellipse at 50% 40%, rgba(180, 195, 185, 0.08) 0%, transparent 65%);
+}
+
+.hero-bg-glow {
+  background: radial-gradient(ellipse at 50% 50%, rgba(200, 210, 200, 0.06) 0%, transparent 70%);
+}
+
+/* Animated counter number */
+@keyframes count-up-flash {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.counter-value {
+  animation: count-up-flash 0.4s ease-out forwards;
+}
+
+/* Badge shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.badge-shimmer {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Static soft fade from hero into content */
+.hero-bottom-fade {
+  background: linear-gradient(to top, transparent 0%, rgba(255, 255, 255, 0.2) 40%, transparent 100%);
+}
